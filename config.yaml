@@ -1,0 +1,40 @@
+---
+
+daily_routine:
+
+  transition_times:
+    morning:   ["07:00", "08:00"]
+    evening:   ["17:00", "18:00"]
+    bedtime_1: ["21:00", "22:00"]
+    bedtime_2: ["23:00", "00:00"]
+
+  brightness:
+    ceiling: [255,  96, 32, 1]
+    general: [255, 112, 40, 1]
+    lantern: [255, 128, 48, 1]
+
+  color_temperature:
+    ceiling: [153, 250, 325, 400]
+    general: [153, 250, 325, 400]
+    lantern: [153, 250, 325, 400]
+
+  light_groups:
+    ceiling:
+      - Bedroom ceiling
+      - Living room ceiling
+    general:
+      - Bathroom 1
+      - Bathroom 2
+      - Bedroom uplighter 1
+      - Bedroom uplighter 2
+      - Hall 1
+      - Hall 2
+      - Kitchen 1
+      - Kitchen 2
+      - Kitchen 3
+      - Kitchen 4
+    lantern:
+      - Lantern 1
+      - Lantern 2
+
+
