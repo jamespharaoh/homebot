@@ -6,20 +6,20 @@ use std::error::Error;
 use std::fs::File;
 
 #[ derive (Deserialize) ]
-#[ serde (deny_unknown_fields) ]
+#[ serde (deny_unknown_fields, rename_all = "kebab-case") ]
 pub struct Config {
 	pub core: CoreConfig,
 	pub programmes: HashMap <String, ProgrammeConfig>,
 }
 
 #[ derive (Deserialize) ]
-#[ serde (deny_unknown_fields) ]
+#[ serde (deny_unknown_fields, rename_all = "kebab-case") ]
 pub struct CoreConfig {
 	pub sleep_millis: u16,
 }
 
 #[ derive (Deserialize) ]
-#[ serde (deny_unknown_fields) ]
+#[ serde (deny_unknown_fields, rename_all = "kebab-case") ]
 pub struct ProgrammeConfig {
 	pub r#type: String,
 	pub config: Value,

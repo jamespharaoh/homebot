@@ -2,7 +2,7 @@
 
 core:
 
-  sleep_millis: 350
+  sleep-millis: 350
 
 programmes:
 
@@ -10,23 +10,23 @@ programmes:
     type: daily-routine
     config:
 
-      transition_times:
+      transition-times:
         morning:   [07:00:00, 08:00:00]
         evening:   [17:00:00, 18:00:00]
-        bedtime_1: [21:00:00, 22:00:00]
-        bedtime_2: [23:00:00, 23:59:59]
+        bedtime-1: [21:00:00, 22:00:00]
+        bedtime-2: [23:00:00, 23:59:59]
 
       brightness:
         ceiling: [255,  96, 32, 1]
         general: [255, 112, 40, 1]
         lantern: [255, 140, 48, 1]
 
-      colour_temperature:
+      colour-temperature:
         ceiling: [153, 250, 325, 400]
         general: [153, 250, 325, 400]
         lantern: [153, 250, 325, 400]
 
-      light_groups:
+      light-groups:
         ceiling:
           - Bedroom ceiling
           - Living room ceiling
@@ -48,8 +48,8 @@ programmes:
   colourful-living-room-kitchen:
     type: colourful
     config:
-      interval_time: 40
-      transition_time: 20
+      interval-time: 40
+      transition-time: 20
       lights:
         - Lantern 1
         - Lantern 2
@@ -61,8 +61,8 @@ programmes:
   colourful-bedroom:
     type: colourful
     config:
-      interval_time: 100
-      transition_time: 50
+      interval-time: 100
+      transition-time: 50
       lights:
         - Bedroom uplighter 1
         - Bedroom uplighter 2

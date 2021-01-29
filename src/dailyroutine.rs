@@ -15,7 +15,7 @@ use crate::HueLightState;
 use crate::Programme;
 
 #[ derive (Deserialize) ]
-#[ serde (deny_unknown_fields) ]
+#[ serde (deny_unknown_fields, rename_all = "kebab-case") ]
 pub struct DailyRoutineConfig {
 	pub transition_times: DailyRoutineTransitionTimesConfig,
 	pub brightness: HashMap <String, (u8, u8, u8, u8)>,
@@ -24,7 +24,7 @@ pub struct DailyRoutineConfig {
 }
 
 #[ derive (Deserialize) ]
-#[ serde (deny_unknown_fields) ]
+#[ serde (deny_unknown_fields, rename_all = "kebab-case") ]
 pub struct DailyRoutineTransitionTimesConfig {
 	pub morning: (NaiveTime, NaiveTime),
 	pub evening: (NaiveTime, NaiveTime),

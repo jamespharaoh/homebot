@@ -19,7 +19,7 @@ use crate::HueLightState;
 use crate::Programme;
 
 #[ derive (Deserialize) ]
-#[ serde (deny_unknown_fields) ]
+#[ serde (deny_unknown_fields, rename_all = "kebab-case") ]
 pub struct ColourfulConfig {
 	pub interval_time: u16,
 	pub transition_time: u16,
