@@ -55,6 +55,7 @@ impl DailyRoutineProgramme {
 			serde_yaml::from_value (config.clone ()) ?;
 
 		let transition_times = vec! [
+			NaiveTime::from_hms (0, 0, 0),
 			config.transition_times.morning.0,
 			config.transition_times.morning.1,
 			config.transition_times.evening.0,
@@ -133,7 +134,7 @@ impl Programme for DailyRoutineProgramme {
 		let date = now.date ();
 		let time = now.time ();
 
-		let index = self.transition_times.iter ().take_while (
+		let index = self.transition_times.iter ().skip (1).take_while (
 			|transition_time| ** transition_time <= time
 		).count ();
 
@@ -150,8 +151,7 @@ impl Programme for DailyRoutineProgramme {
 		for light_group in self.light_groups.iter () {
 
 			fn interpolate (range: (i64, i64), progress: i64) -> i64 {
-				let diff = range.1 as i64 - range.0 as i64;
-				((range.0 as i64) + diff * progress as i64 / 0x10000)
+				range.0 + (range.1 - range.0) * progress / 0x10000
 			}
 
 			let new_brightness = interpolate (
@@ -176,7 +176,11 @@ impl Programme for DailyRoutineProgramme {
 				let mut new_state: HueLightState = Default::default ();
 
 				if ! light_data.state.on.unwrap () {
-					continue;
+					if index == 1 {
+						new_state.on = Some (true);
+					} else {
+						continue;
+					}
 				}
 
 				if new_brightness != light_data.state.bri.unwrap () {
@@ -208,7 +212,8 @@ impl Programme for DailyRoutineProgramme {
 
 				}
 
-				if new_state.bri.is_some () || new_state.ct.is_some () {
+				if new_state.on.is_some () || new_state.bri.is_some ()
+					|| new_state.ct.is_some () {
 
 					if let Err (error) = client.set_light_state (
 						& light_id,
