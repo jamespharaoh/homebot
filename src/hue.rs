@@ -1,3 +1,5 @@
+use futures::try_join;
+
 use reqwest::Client;
 
 use serde::Deserialize;
@@ -33,9 +35,14 @@ impl HueClient {
 		& self,
 	) -> Result <HueAll, Box <dyn Error>> {
 
+		let (lights, groups) = try_join! (
+			self.get_lights (),
+			self.get_groups (),
+		) ?;
+
 		Ok (HueAll {
-			lights: self.get_lights ().await ?,
-			groups: self.get_groups ().await ?,
+			lights,
+			groups,
 		})
 
 	}
