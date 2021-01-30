@@ -11,15 +11,15 @@ programmes:
     config:
 
       transition-times:
-        morning:   [07:00:00, 08:00:00]
+        morning:   [07:50:00, 08:00:00]
         evening:   [17:00:00, 18:00:00]
         bedtime-1: [21:00:00, 22:00:00]
         bedtime-2: [23:00:00, 23:59:59]
 
       brightness:
-        ceiling: [255,  96, 32, 1]
-        general: [255, 112, 40, 1]
-        lantern: [255, 140, 48, 1]
+        ceiling: [254,  96, 32, 1]
+        general: [254, 112, 40, 1]
+        lantern: [254, 140, 48, 1]
 
       colour-temperature:
         ceiling: [153, 250, 325, 400]
@@ -41,6 +41,7 @@ programmes:
           - Kitchen 2
           - Kitchen 3
           - Kitchen 4
+          - Living room fairy lights
         lantern:
           - Lantern 1
           - Lantern 2

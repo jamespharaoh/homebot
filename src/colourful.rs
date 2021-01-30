@@ -27,6 +27,7 @@ pub struct ColourfulConfig {
 }
 
 pub struct ColourfulProgramme {
+	name: String,
 	light_ids: Vec <String>,
 	interval_time: Duration,
 	transition_time: u16,
@@ -38,12 +39,14 @@ impl ColourfulProgramme {
 
 	pub fn build (
 		light_ids_by_name: & HashMap <String, String>,
+		name: String,
 		config: & Value,
 	) -> Result <Box <dyn Programme>, Box <dyn Error>> {
 
 		let config: ColourfulConfig = serde_yaml::from_value (config.clone ()) ?;
 
 		Ok (Box::new (ColourfulProgramme {
+			name,
 			light_ids: config.lights.iter ().map (
 				|light_name| light_ids_by_name [light_name].to_string (),
 			).collect (),
@@ -92,7 +95,7 @@ impl Programme for ColourfulProgramme {
 
 		let light_data = & all_data.lights [light_id];
 
-		println! ("Colourful set {} ({}): hue={} sat={}", light_data.name, light_id, hue, sat);
+		println! ("[{}] {} ({}): hue={} sat={}", self.name, light_data.name, light_id, hue, sat);
 
 		if let Err (error) =
 			client.set_light_state (& light_id, & HueLightState {

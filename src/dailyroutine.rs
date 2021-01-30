@@ -33,6 +33,7 @@ pub struct DailyRoutineTransitionTimesConfig {
 }
 
 pub struct DailyRoutineProgramme {
+	name: String,
 	transition_times: Vec <NaiveTime>,
 	light_groups: Vec <DailyRoutineLightGroup>,
 }
@@ -48,6 +49,7 @@ impl DailyRoutineProgramme {
 
 	pub fn build (
 		light_ids_by_name: & HashMap <String, String>,
+		name: String,
 		config: & Value,
 	) -> Result <Box <dyn Programme>, Box <dyn Error>> {
 
@@ -64,6 +66,7 @@ impl DailyRoutineProgramme {
 			config.transition_times.bedtime_1.1,
 			config.transition_times.bedtime_2.0,
 			config.transition_times.bedtime_2.1,
+			NaiveTime::from_hms_milli (0, 0, 0, 1000),
 		];
 
 		let mut light_groups = Vec::new ();
@@ -113,6 +116,7 @@ impl DailyRoutineProgramme {
 		}
 
 		Ok (Box::new (DailyRoutineProgramme {
+			name,
 			transition_times,
 			light_groups,
 		}))
@@ -183,13 +187,16 @@ impl Programme for DailyRoutineProgramme {
 					}
 				}
 
-				if new_brightness != light_data.state.bri.unwrap () {
+				if ! light_data.state.on.unwrap ()
+					|| (light_data.state.ct.is_some ()
+						&& new_brightness != light_data.state.bri.unwrap ()) {
 
 					println! (
-						"Daily routine {} ({}) brightness from {} to {}",
+						"[{}] {} ({}) brightness from {} to {}",
+						self.name,
 						light_data.name,
 						light_id,
-						light_data.state.bri.unwrap (),
+						light_data.state.bri.unwrap_or (0),
 						new_brightness,
 					);
 
@@ -197,14 +204,16 @@ impl Programme for DailyRoutineProgramme {
 
 				}
 
-				if light_data.state.colormode.as_ref ().unwrap () == "ct"
-					&& light_data.state.ct.unwrap () != new_colour_temperature {
+				if ! light_data.state.on.unwrap ()
+					|| (light_data.state.colormode.as_ref ().map (String::as_str) == Some ("ct")
+						&& light_data.state.ct.unwrap () != new_colour_temperature) {
 
 					println! (
-						"Daily routine {} ({}) colour temperature from {} to {}",
+						"[{}] {} ({}) colour temperature from {} to {}",
+						self.name,
 						light_data.name,
 						light_id,
-						light_data.state.ct.unwrap (),
+						light_data.state.ct.unwrap_or (0),
 						new_colour_temperature,
 					);
 

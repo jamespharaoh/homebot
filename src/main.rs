@@ -53,10 +53,10 @@ async fn main_inner () -> Result <(), Box <dyn Error>> {
 	).collect ();
 
 	let mut programmes: Vec <Box <dyn Programme>> = config.programmes.iter ().map (
-		|(_programme_name, programme_config)| Ok (
+		|(programme_name, programme_config)| Ok (
 			match programme_config.r#type.as_str () {
-				"colourful" => ColourfulProgramme::build (& light_ids_by_name, & programme_config.config) ?,
-				"daily-routine" => DailyRoutineProgramme::build (& light_ids_by_name, & programme_config.config) ?,
+				"colourful" => ColourfulProgramme::build (& light_ids_by_name, programme_name.clone (), & programme_config.config) ?,
+				"daily-routine" => DailyRoutineProgramme::build (& light_ids_by_name, programme_name.clone (), & programme_config.config) ?,
 				_ => return Err (format! ("Programme type invalid: {}", programme_config.r#type).into ()),
 			},
 		),
