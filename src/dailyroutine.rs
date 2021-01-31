@@ -78,7 +78,7 @@ impl DailyRoutineProgramme {
 			config.transition_times.bedtime_1.1,
 			config.transition_times.bedtime_2.0,
 			config.transition_times.bedtime_2.1,
-			NaiveTime::from_hms_milli (0, 0, 0, 1000),
+			NaiveTime::from_hms_milli (23, 59, 59, 1000),
 		];
 
 		let mut light_groups = Vec::new ();
@@ -176,7 +176,7 @@ impl Programme for DailyRoutineProgramme {
 
 		let index = inner.transition_times.iter ().skip (1).take_while (
 			|transition_time| ** transition_time <= time
-		).count ();
+		).take (8).count ();
 
 		let start_time = inner.transition_times [index];
 		let end_time = inner.transition_times [index + 1];
