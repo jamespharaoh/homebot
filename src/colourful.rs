@@ -12,6 +12,8 @@ use serde_yaml::Value;
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use crate::HueAll;
 use crate::HueClient;
@@ -27,10 +29,18 @@ pub struct ColourfulConfig {
 }
 
 pub struct ColourfulProgramme {
+	inner: Arc <ColourfulInner>,
+}
+
+pub struct ColourfulInner {
 	name: String,
 	light_ids: Vec <String>,
 	interval_time: Duration,
 	transition_time: u16,
+	state: Mutex <ColourfulState>,
+}
+
+pub struct ColourfulState {
 	next_run: DateTime <Utc>,
 	last_light_id: String,
 }
@@ -46,14 +56,18 @@ impl ColourfulProgramme {
 		let config: ColourfulConfig = serde_yaml::from_value (config.clone ()) ?;
 
 		Ok (Box::new (ColourfulProgramme {
-			name,
-			light_ids: config.lights.iter ().map (
-				|light_name| light_ids_by_name [light_name].to_string (),
-			).collect (),
-			interval_time: Duration::milliseconds (config.interval_time as i64 * 100),
-			transition_time: config.transition_time,
-			next_run: Utc::now (),
-			last_light_id: String::new (),
+			inner: Arc::new (ColourfulInner {
+				name,
+				light_ids: config.lights.iter ().map (
+					|light_name| light_ids_by_name [light_name].to_string (),
+				).collect (),
+				interval_time: Duration::milliseconds (config.interval_time as i64 * 100),
+				transition_time: config.transition_time,
+				state: Mutex::new (ColourfulState {
+					next_run: Utc::now (),
+					last_light_id: String::new (),
+				}),
+			}),
 		}))
 
 	}
@@ -63,17 +77,33 @@ impl ColourfulProgramme {
 #[ async_trait ]
 impl Programme for ColourfulProgramme {
 
+	fn clone (& self) -> Box <dyn Programme> {
+		Box::new (ColourfulProgramme {
+			inner: self.inner.clone (),
+		})
+	}
+
+	async fn activate (
+		& self,
+		_client: & HueClient,
+		_all_data: & HueAll,
+	) {
+	}
+
+	async fn deactivate (
+		& self,
+		_client: & HueClient,
+		_all_data: & HueAll,
+	) {
+	}
+
 	async fn tick (
-		& mut self,
+		& self,
 		client: & HueClient,
 		all_data: & HueAll,
 	) {
 
-		if Utc::now () < self.next_run {
-			return;
-		}
-
-		self.next_run = self.next_run + self.interval_time;
+		let inner = self.inner.as_ref ();
 
 		let light_id: & str;
 		let hue: u16;
@@ -81,35 +111,49 @@ impl Programme for ColourfulProgramme {
 
 		{
 
+			let mut state = inner.state.lock ().unwrap ();
+
+			if Utc::now () < state.next_run {
+				return;
+			}
+
 			let mut rng = rand::thread_rng ();
 
 			light_id = loop {
-				let light_id = self.light_ids.choose (& mut rng).unwrap ();
-				if light_id != & self.last_light_id { break light_id }
+				let light_id = inner.light_ids.choose (& mut rng).unwrap ();
+				if light_id != & state.last_light_id { break light_id }
 			};
 
 			hue = rng.gen ();
 			sat = rng.gen::<u8> () | 0xc0;
 
+			state.next_run = state.next_run + inner.interval_time;
+			state.last_light_id = light_id.to_string ();
+
 		}
 
 		let light_data = & all_data.lights [light_id];
 
-		println! ("[{}] {} ({}): hue={} sat={}", self.name, light_data.name, light_id, hue, sat);
+		println! (
+			"[{}] {} ({}): hue={} sat={}",
+			inner.name,
+			light_data.name,
+			light_id,
+			hue,
+			sat,
+		);
 
 		if let Err (error) =
 			client.set_light_state (& light_id, & HueLightState {
 				hue: Some (hue),
 				sat: Some (sat),
-				transitiontime: Some (self.transition_time),
+				transitiontime: Some (inner.transition_time),
 				.. Default::default ()
 			}).await {
 
 			eprintln! ("Error setting light state: {}", error);
 
 		}
-
-		self.last_light_id = light_id.to_string ();
 
 	}
 

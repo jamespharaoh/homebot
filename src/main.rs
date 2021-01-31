@@ -1,26 +1,23 @@
-use async_trait::async_trait;
-
 use chrono::Duration;
 
-use futures;
-use futures::future;
+use futures::try_join;
 
-use config::*;
-use hue::*;
-
-use std::collections::HashMap;
 use std::error::Error;
 use std::process;
 
 use tokio::time as tokio_time;
 
-use crate::colourful::ColourfulProgramme;
-use crate::dailyroutine::DailyRoutineProgramme;
+use crate::colourful::*;
+use crate::config::*;
+use crate::dailyroutine::*;
+use crate::hue::*;
+use crate::programme::*;
 
 mod colourful;
 mod config;
 mod dailyroutine;
 mod hue;
+mod programme;
 
 const HOSTNAME: & str = "10.109.131.103";
 const USERNAME: & str = "XN8wjhtZLtQoy4Aae2fA95A38s59Cqht8kd5yqxN";
@@ -45,58 +42,45 @@ async fn main_inner () -> Result <(), Box <dyn Error>> {
 
 	let all_data = client.get_all ().await ?;
 
-	let light_ids_by_name: HashMap <String, String> = all_data.lights.iter ().map (
-		|(light_id, light_data)| (
-			light_data.name.to_string (),
-			light_id.to_string (),
-		),
-	).collect ();
+	let programme_manager = ProgrammeManager::new (
+		& config,
+		& all_data,
+	) ?;
 
-	let mut programmes: Vec <Box <dyn Programme>> = config.programmes.iter ().map (
-		|(programme_name, programme_config)| Ok (
-			match programme_config.r#type.as_str () {
-				"colourful" => ColourfulProgramme::build (& light_ids_by_name, programme_name.clone (), & programme_config.config) ?,
-				"daily-routine" => DailyRoutineProgramme::build (& light_ids_by_name, programme_name.clone (), & programme_config.config) ?,
-				_ => return Err (format! ("Programme type invalid: {}", programme_config.r#type).into ()),
-			},
+	try_join! (
+		main_loop (
+			& config,
+			& client,
+			programme_manager.clone (),
 		),
-	).collect::<Result <Vec <Box <dyn Programme>>, Box <dyn Error>>> () ?;
+	) ?;
+
+	Ok (())
+
+}
+
+async fn main_loop (
+	config: & Config,
+	client: & HueClient,
+	programme_manager: ProgrammeManager,
+) -> Result <(), Box <dyn Error>> {
 
 	loop {
 
 		let all_data = client.get_all ().await ?;
 
-		let mut programme_futs = Vec::new ();
-
-		for programme in programmes.iter_mut () {
-
-			programme_futs.push (
-				programme.tick (
-					& client,
-					& all_data,
-				),
-			);
-
-		}
-
-		future::join_all (programme_futs).await;
+		programme_manager.tick (
+			& client,
+			& all_data,
+		).await;
 
 		tokio_time::sleep (
-			Duration::milliseconds (config.core.sleep_millis as i64).to_std ().unwrap (),
+			Duration::milliseconds (
+				config.core.sleep_millis as i64,
+			).to_std ().unwrap (),
 		).await;
 
 	}
-
-}
-
-#[ async_trait ]
-trait Programme {
-
-	async fn tick (
-		& mut self,
-		client: & HueClient,
-		all_data: & HueAll,
-	);
 
 }
 

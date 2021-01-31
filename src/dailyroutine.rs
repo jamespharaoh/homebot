@@ -8,6 +8,7 @@ use serde_yaml::Value;
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
 
 use crate::HueAll;
 use crate::HueClient;
@@ -32,7 +33,12 @@ pub struct DailyRoutineTransitionTimesConfig {
 	pub bedtime_2: (NaiveTime, NaiveTime),
 }
 
+#[ derive (Clone) ]
 pub struct DailyRoutineProgramme {
+	inner: Arc <DailyRoutineInner>,
+}
+
+pub struct DailyRoutineInner {
 	name: String,
 	transition_times: Vec <NaiveTime>,
 	light_groups: Vec <DailyRoutineLightGroup>,
@@ -46,6 +52,12 @@ pub struct DailyRoutineLightGroup {
 }
 
 impl DailyRoutineProgramme {
+
+	fn clone (& self) -> Box <dyn Programme> {
+		Box::new (DailyRoutineProgramme {
+			inner: self.inner.clone (),
+		})
+	}
 
 	pub fn build (
 		light_ids_by_name: & HashMap <String, String>,
@@ -116,9 +128,11 @@ impl DailyRoutineProgramme {
 		}
 
 		Ok (Box::new (DailyRoutineProgramme {
-			name,
-			transition_times,
-			light_groups,
+			inner: Arc::new (DailyRoutineInner {
+				name,
+				transition_times,
+				light_groups,
+			}),
 		}))
 
 	}
@@ -128,22 +142,44 @@ impl DailyRoutineProgramme {
 #[ async_trait ]
 impl Programme for DailyRoutineProgramme {
 
+	fn clone (& self) -> Box <dyn Programme> {
+		Box::new (DailyRoutineProgramme {
+			inner: self.inner.clone (),
+		})
+	}
+
+	async fn activate (
+		& self,
+		_client: & HueClient,
+		_all_data: & HueAll,
+	) {
+	}
+
+	async fn deactivate (
+		& self,
+		_client: & HueClient,
+		_all_data: & HueAll,
+	) {
+	}
+
 	async fn tick (
-		& mut self,
+		& self,
 		client: & HueClient,
 		all_data: & HueAll,
 	) {
+
+		let inner = self.inner.as_ref ();
 
 		let now = Local::now ();
 		let date = now.date ();
 		let time = now.time ();
 
-		let index = self.transition_times.iter ().skip (1).take_while (
+		let index = inner.transition_times.iter ().skip (1).take_while (
 			|transition_time| ** transition_time <= time
 		).count ();
 
-		let start_time = self.transition_times [index];
-		let end_time = self.transition_times [index + 1];
+		let start_time = inner.transition_times [index];
+		let end_time = inner.transition_times [index + 1];
 
 		let start_instant = date.and_time (start_time).unwrap ();
 		let end_instant = date.and_time (end_time).unwrap ();
@@ -152,7 +188,7 @@ impl Programme for DailyRoutineProgramme {
 		let elapsed_seconds = now.timestamp () - start_instant.timestamp ();
 		let progress = elapsed_seconds * 0x10000 / total_seconds;
 
-		for light_group in self.light_groups.iter () {
+		for light_group in inner.light_groups.iter () {
 
 			fn interpolate (range: (i64, i64), progress: i64) -> i64 {
 				range.0 + (range.1 - range.0) * progress / 0x10000
@@ -193,7 +229,7 @@ impl Programme for DailyRoutineProgramme {
 
 					println! (
 						"[{}] {} ({}) brightness from {} to {}",
-						self.name,
+						inner.name,
 						light_data.name,
 						light_id,
 						light_data.state.bri.unwrap_or (0),
@@ -210,7 +246,7 @@ impl Programme for DailyRoutineProgramme {
 
 					println! (
 						"[{}] {} ({}) colour temperature from {} to {}",
-						self.name,
+						inner.name,
 						light_data.name,
 						light_id,
 						light_data.state.ct.unwrap_or (0),
